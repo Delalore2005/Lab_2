@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: bigdata_470177
+    environment:
+      POSTGRES_DB: bigdata_lab
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - ./data:/data
+    networks:
+      - spark-network
+
+  jupyter-notebook:
+    build: ./spark
+    container_name: jupyter-notebook
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - PYSPARK_PYTHON=python
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./spark:/home/470177/work
+      - ./data:/data
+    working_dir: /home/470177/work
+    depends_on:
+      - postgres
+      - mongo
+      - clickhouse
+    networks:
+      - spark-network
+
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - spark-network
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: clickhouse
+    ports:
+      - "8123:8123"  # HTTP
+      - "9000:9000"  # native
+    environment:
+      - CLICKHOUSE_DB=default
+      - CLICKHOUSE_USER=labuser
+      - CLICKHOUSE_PASSWORD=labpass
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1  
+    networks:
+      - spark-network
+
+networks:
+  spark-network:
+    driver: bridge
+
